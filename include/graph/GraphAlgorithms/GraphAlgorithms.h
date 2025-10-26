@@ -8,7 +8,7 @@ class GraphAlgorithms {
   const T& graph;
 
   public:
-    GraphAlgorithms<T>(const T& agraph) : graph(agraph) {}
+    GraphAlgorithms(const T& agraph) : graph(agraph) {}
     Way dijkstryAlgorithm(int begin, int end);
     Way antAlgorithm();
 };

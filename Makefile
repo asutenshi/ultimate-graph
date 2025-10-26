@@ -1,9 +1,9 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Igraph-project/include
+CXXFLAGS = -std=c++20 -Wall -Igraph-project/include
 TARGET = app
 
 # Укажите здесь все ваши исходные .cpp файлы
-SOURCES = src/main.cpp src/graph/GraphWrapper.cpp 
+SOURCES = src/main.cpp src/graph/GraphWrapper.cpp src/pathFinding/LIAN.cpp
 
 # Правило для сборки
 all:

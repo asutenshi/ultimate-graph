@@ -1,9 +1,8 @@
 #include <iostream>
-#include <memory>
 #include "../include/graph/GraphWrapper.h"
 #include "../include/graph/GraphAlgorithms/GraphAlgorithms.h"
+#include "../include/pathFinding/LIAN.h"
 
-// Главная функция с меню
 int main() {
   // std::cout << "Select graph type:\n1: Unweighted\n2: Weighted\n";
   // int graphType = 0;
@@ -30,84 +29,53 @@ int main() {
   // std::cin >> algoId;
   // graph->runAlgorithm(algoId);
 
-  // std::unique_ptr<IGraph> graph = std::make_unique<WeightedGraph>();
-  // WeightedGraph graph;
+  // ---
 
-  // graph.addNode(1);
-  // graph.addNode(2);
-  // graph.addNode(3);
-  // graph.addNode(4);
-  // graph.addNode(5);
-  // graph.addNode(6);
-  // graph.addNode(7);
-  // graph.addNode(8);
-  // graph.addNode(9);
+  // try {
+  //   // WeightedGraph graph("./data/deijkstry.txt");
+  //   WeightedGraph graph("./data/1000.txt");
+  //   graph.print();
 
-  // graph.addEdge(1, 2, 10);
-  // graph.addEdge(1, 3, 6);
-  // graph.addEdge(1, 4, 8);
-  // graph.addEdge(2, 4, 5);
-  // graph.addEdge(2, 7, 11);
-  // graph.addEdge(3, 5, 3);
-  // graph.addEdge(4, 7, 12);
-  // graph.addEdge(4, 6, 7);
-  // graph.addEdge(4, 5, 5);
-  // graph.addEdge(5, 6, 9);
-  // graph.addEdge(5, 9, 12);
-  // graph.addEdge(6, 8, 8);
-  // graph.addEdge(6, 9, 10);
-  // graph.addEdge(7, 6, 4);
-  // graph.addEdge(7, 8, 6);
-  // graph.addEdge(8, 9, 15);
+  //   GraphAlgorithms<Graph<WeightedEdge>> algorithms(graph.getGraph());
+  //   // std::cout << std::endl << algorithms.dijkstryAlgorithm(1, 9) << std::endl;
+  //   std::cout << std::endl << algorithms.dijkstryAlgorithm(0, 874) << std::endl;
+  // } catch (const std::exception& ex) {
+  //   std::cout << "\nAlgorithm error: " << ex.what() << std::endl;
+  // }
 
-  // graph.print();
+//  ---
+  
+  // try {
+  //   WeightedGraph graph("./data/ant_graph_small.txt");
+  //   WeightedGraph graph("./data/1000.txt");
+  
+  //   graph.print();
+  
+  //   GraphAlgorithms<Graph<WeightedEdge>> algorithms(graph.getGraph());
+  //   std::cout << std::endl << algorithms.antAlgorithm() << std::endl;
+  // } catch (const std::exception& ex) {
+  //     std::cout << "\nAlgorithm error: " << ex.what() << std::endl;
+  // }
 
-  // GraphAlgorithms<Graph<WeightedEdge>> algorithms(graph.getGraph());
-  // std::cout << std::endl << algorithms.dijkstryAlgorithm(1, 9) << std::endl;
+  //---
 
-  // Добавление узлов (1='a', 2='b', 3='c', 4='d', 5='f', 6='g')
+  std::vector<std::vector<int>> map = readBinaryMap("./data/binary_map.txt");
+  LIAN alg = LIAN(map);
 
-  WeightedGraph graph;
-  graph.addNode(1);
-  graph.addNode(2);
-  graph.addNode(3);
-  graph.addNode(4);
-  graph.addNode(5);
-  graph.addNode(6);
+  Point start{165, 304};
+  Point goal{1287, 690};
+  double maxAngle = 120.0;
 
-  // Добавление ребер (Source, Destination, Weight)
+  std::vector<Point> path = alg.findPath(start, goal, maxAngle);
 
-  graph.addEdge(1, 2, 3);
-  graph.addEdge(1, 5, 1);
-
-  graph.addEdge(2, 1, 3);
-  graph.addEdge(2, 3, 8);
-  graph.addEdge(2, 6, 3);
-
-  graph.addEdge(3, 2, 3);
-  graph.addEdge(3, 4, 1);
-  graph.addEdge(3, 6, 1);
-
-  graph.addEdge(4, 3, 8);
-  graph.addEdge(4, 5, 1);
-
-  graph.addEdge(5, 4, 3);
-  graph.addEdge(5, 1, 3);
-
-  graph.addEdge(6, 1, 3);
-  graph.addEdge(6, 2, 3);
-  graph.addEdge(6, 3, 3);
-  graph.addEdge(6, 4, 5);
-  graph.addEdge(6, 5, 4);
-
-  graph.print();
-
-  GraphAlgorithms<Graph<WeightedEdge>> algorithms(graph.getGraph());
-
-  try {
-    std::cout << std::endl << algorithms.antAlgorithm() << std::endl;
-  } catch (const std::exception& ex) {
-      std::cout << "\nAlgorithm error: " << ex.what() << std::endl;
+  if (!path.empty()) {
+      std::cout << "Path found with " << path.size() << " points:" << std::endl;
+      for (const auto& p : path) {
+          std::cout << "(" << p.x << ", " << p.y << ") ";
+      }
+      saveMapWithPath(map, path, "./output/map_with_path.txt");
+  } else {
+      std::cout << "No path found" << std::endl;
   }
 
   return 0;

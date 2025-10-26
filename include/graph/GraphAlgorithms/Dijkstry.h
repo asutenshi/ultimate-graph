@@ -57,6 +57,7 @@ Way Dijkstry<T>::shortestWay(int begin, int end) {
         nodes.push(MarkedNode(neighbourEdge.to, weight, next.node));
     }
   }
+  throw std::runtime_error("No path from " + std::to_string(begin) + " to " + std::to_string(end));
   return Way();
 }
 
