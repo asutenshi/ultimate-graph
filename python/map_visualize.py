@@ -28,4 +28,4 @@ def visualize_map_with_path(filename):
     plt.show()
 
 if __name__ == '__main__':
-    visualize_map_with_path('./output/map_with_path.txt')
+    visualize_map_with_path('../output/map_with_path.txt')
