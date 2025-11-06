@@ -46,13 +46,24 @@ int main() {
 //  ---
   
   // try {
-  //   WeightedGraph graph("./data/ant_graph_small.txt");
-  //   WeightedGraph graph("./data/1000.txt");
+    // TODO: перенести остановку в условие продолжения
+    // WeightedGraph graph("./data/ant_graph_small.txt");
+    // WeightedGraph graph("./data/1000.txt");
+  //   WeightedGraph graph("./data/ai_studio_graph.txt");
   
   //   graph.print();
   
   //   GraphAlgorithms<Graph<WeightedEdge>> algorithms(graph.getGraph());
-  //   std::cout << std::endl << algorithms.antAlgorithm() << std::endl;
+  //   std::cout << std::endl << algorithms.antAlgorithm<BalancedAnt>(
+  //     20,         // antCount
+  //     150,        // maxIterations
+  //     0.025,        // evaporationRate
+  //     100.0,      // Q
+  //     0.1,       // initialPheromone
+  //     0,         // minIterations
+  //     0,         // stableIterations
+  //     0.001       // eps
+  //   ) << std::endl;
   // } catch (const std::exception& ex) {
   //     std::cout << "\nAlgorithm error: " << ex.what() << std::endl;
   // }
@@ -64,9 +75,10 @@ int main() {
 
   Point start{165, 304};
   Point goal{1287, 690};
-  double maxAngle = 120.0;
+  double maxAngle = 46.0;
+  int delta = 20;
 
-  std::vector<Point> path = alg.findPath(start, goal, maxAngle);
+  std::vector<Point> path = alg.findPath(start, goal, maxAngle, delta);
 
   if (!path.empty()) {
       std::cout << "Path found with " << path.size() << " points:" << std::endl;

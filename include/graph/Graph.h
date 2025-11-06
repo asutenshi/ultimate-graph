@@ -8,6 +8,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 template <typename T>
 class Graph {
@@ -19,6 +20,8 @@ public:
   Graph(const std::string& filename);
   void addNode(int node_id);
   void addEdge(int u, int v, double weight = 1.0);
+  void removeNode(int node_id);
+  void removeEdge(int u, int v);
   const std::unordered_map<int, std::vector<T>>& getAdjList() const;
   void print() const;
 };
@@ -67,6 +70,7 @@ Graph<T>::Graph(const std::string& filename) {
       adjList[to].push_back(from);
     } else if constexpr (std::is_same_v<T, WeightedEdge>) {
       adjList[from].push_back(WeightedEdge{to, weight});
+      // adjList[to].push_back(WeightedEdge{from, weight});
     }
   }
   
@@ -94,6 +98,39 @@ void Graph<T>::addEdge(int u, int v, double weight) {
   } 
   else {
     throw std::runtime_error("Unsupported type of graph.");
+  }
+}
+
+template<typename T>
+void Graph<T>::removeNode(int node_id) {
+  // Удаляем все рёбра, ведущие к node_id
+  for (auto& [id, neighbours] : adjList) {
+    if constexpr (std::is_same_v<T, int>) {
+      neighbours.erase(std::remove(neighbours.begin(), neighbours.end(), node_id), neighbours.end());
+    } else if constexpr (std::is_same_v<T, WeightedEdge>) {
+      neighbours.erase(std::remove_if(neighbours.begin(), neighbours.end(),
+        [node_id](const WeightedEdge& e){ return e.to == node_id; }), neighbours.end());
+    }
+  }
+  // Удаляем саму вершину
+  adjList.erase(node_id);
+}
+
+template<typename T>
+void Graph<T>::removeEdge(int u, int v) {
+  if constexpr (std::is_same_v<T, int>) {
+    if (adjList.find(u) != adjList.end())
+      adjList[u].erase(std::remove(adjList[u].begin(), adjList[u].end(), v), adjList[u].end());
+    if (adjList.find(v) != adjList.end())
+      adjList[v].erase(std::remove(adjList[v].begin(), adjList[v].end(), u), adjList[v].end());
+  } else if constexpr (std::is_same_v<T, WeightedEdge>) {
+    if (adjList.find(u) != adjList.end())
+      adjList[u].erase(std::remove_if(adjList[u].begin(), adjList[u].end(),
+        [v](const WeightedEdge& e){ return e.to == v; }), adjList[u].end());
+    // Если граф неориентированный, удаляем и обратное ребро
+    if (adjList.find(v) != adjList.end())
+      adjList[v].erase(std::remove_if(adjList[v].begin(), adjList[v].end(),
+        [u](const WeightedEdge& e){ return e.to == u; }), adjList[v].end());
   }
 }
 

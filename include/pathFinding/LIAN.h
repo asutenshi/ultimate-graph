@@ -34,24 +34,25 @@ struct Node {
 
 class LIAN {
 public:
-    LIAN(const std::vector<std::vector<int>>& map);
-    std::vector<Point> findPath(const Point& start, const Point& goal, double max_turn_angle);
+    LIAN(const std::vector<std::vector<int>>& grid);
+    std::vector<Point> findPath(const Point& start, const Point& goal, double max_turn_angle, int delta = 1);
 
 private:
     std::vector<std::vector<int>> map_;
-    int rows_, cols_;
+    int rows_;
+    int cols_;
     
     bool isValid(const Point& p) const;
     bool isFreeLine(const Point& a, const Point& b) const;
     double angleBetween(const Point& a, const Point& b, const Point& c) const;
     bool isValidAngle(const Point& prev, const Point& current, const Point& next, double max_turn_angle) const;
-    std::vector<Point> getNeighbors(const Point& current, const Point& prev, double max_turn_angle) const;
-    std::vector<Point> getLinePoints(const Point& a, const Point& b) const;
+    std::vector<Point> getNeighbors(const Point& current, const Point& prev, double max_turn_angle, int delta) const;
     double distance(const Point& a, const Point& b) const;
-    double heuristic(const Point& a, const Point& b) const;
+    double heuristic(const Point& current, const Point& goal, const Point& prev) const;
     std::vector<Point> reconstructPath(
         const std::unordered_map<Point, Point, PointHash>& cameFrom,
         const Point& start, const Point& goal) const;
+    std::vector<Point> getLinePoints(const Point& a, const Point& b) const;
 };
 
 std::vector<std::vector<int>> readBinaryMap(const std::string& filename);

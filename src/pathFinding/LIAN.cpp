@@ -11,88 +11,82 @@ LIAN::LIAN(const std::vector<std::vector<int>>& map)
   cols_ = rows_ > 0 ? map[0].size() : 0;
 }
 
-std::vector<Point> LIAN::findPath(const Point& start, const Point& goal, double max_turn_angle) {
-  if (!isValid(start) || !isValid(goal)) {
-      std::cout << "Invalid start or goal!" << std::endl;
-      return {};
-  }
-  
-  std::priority_queue<Node, std::vector<Node>, std::greater<Node>> openSet;
-  std::unordered_map<Point, double, PointHash> costSoFar;
-  std::unordered_map<Point, Point, PointHash> cameFrom;
-  
-  Node startNode{start, start, 0.0, heuristic(start, goal)};
-  openSet.push(startNode);
-  costSoFar[start] = 0.0;
-  cameFrom[start] = start;
-  
-  int iterations = 0;
-  
-  while (!openSet.empty()) {
-      Node current = openSet.top();
-      openSet.pop();
-      
-      iterations++;
-      if (iterations % 1000 == 0) {
-          std::cout << "Iteration: " << iterations 
-                    << ", Queue size: " << openSet.size() 
-                    << ", Current: (" << current.pos.x << ", " << current.pos.y << ")" 
-                    << ", Cost: " << current.cost << std::endl;
-      }
-      
-      // Пропускаем уже обработанные узлы с худшей стоимостью
-      if (costSoFar.count(current.pos) && current.cost > costSoFar[current.pos]) {
-          continue;
-      }
-      
-      if (current.pos == goal) {
-          std::cout << "Goal reached! Iterations: " << iterations << std::endl;
-          return reconstructPath(cameFrom, start, goal);
-      }
-      
-      // Проверяем прямую линию до цели
-      if (isFreeLine(current.pos, goal)) {
-          if (current.prev == current.pos || isValidAngle(current.prev, current.pos, goal, max_turn_angle)) {
-              double newCost = current.cost + distance(current.pos, goal);
-              std::cout << "Found direct line from (" << current.pos.x << ", " << current.pos.y 
-                        << ") to goal with cost: " << newCost << std::endl;
-              
-              if (costSoFar.find(goal) == costSoFar.end() || newCost < costSoFar[goal]) {
-                  costSoFar[goal] = newCost;
-                  cameFrom[goal] = current.pos;
-                  std::cout << "Returning path via direct line. Total iterations: " << iterations << std::endl;
-                  
-                  // Восстанавливаем путь и добавляем прямую линию
-                  std::vector<Point> pathToCurrentPos = reconstructPath(cameFrom, start, current.pos);
-                  
-                  // Добавляем точки прямой линии от current.pos до goal
-                  std::vector<Point> linePoints = getLinePoints(current.pos, goal);
-                  pathToCurrentPos.insert(pathToCurrentPos.end(), linePoints.begin() + 1, linePoints.end());
-                  
-                  return pathToCurrentPos;
-              }
-          }
-      }
-      
-      std::vector<Point> neighbors = getNeighbors(current.pos, current.prev, max_turn_angle);
-      
-      for (const Point& next : neighbors) {
-          double newCost = current.cost + distance(current.pos, next);
-          
-          if (costSoFar.find(next) == costSoFar.end() || newCost < costSoFar[next]) {
-              costSoFar[next] = newCost;
-              Node nextNode{next, current.pos, newCost, heuristic(next, goal)};
-              openSet.push(nextNode);
-              cameFrom[next] = current.pos;
-          }
-      }
-  }
-  
-  std::cout << "No path found after " << iterations << " iterations" << std::endl;
-  return {}; // Путь не найден
+std::vector<Point> LIAN::findPath(const Point& start, const Point& goal, double max_turn_angle, int delta) {
+    if (!isValid(start) || !isValid(goal)) {
+        std::cout << "Invalid start or goal!" << std::endl;
+        return {};
+    }
+    
+    std::priority_queue<Node, std::vector<Node>, std::greater<Node>> openSet;
+    std::unordered_map<Point, double, PointHash> costSoFar;
+    std::unordered_map<Point, Point, PointHash> cameFrom;
+    
+    Node startNode{start, start, 0.0, heuristic(start, goal, start)};
+    openSet.push(startNode);
+    costSoFar[start] = 0.0;
+    cameFrom[start] = start;
+    
+    int iterations = 0;
+    
+    while (!openSet.empty()) {
+        Node current = openSet.top();
+        openSet.pop();
+        
+        iterations++;
+        if (iterations % 1000 == 0) {
+            std::cout << "Iteration: " << iterations 
+                      << ", Queue size: " << openSet.size() 
+                      << ", Current: (" << current.pos.x << ", " << current.pos.y << ")" 
+                      << ", Cost: " << current.cost << std::endl;
+        }
+        
+        if (costSoFar.count(current.pos) && current.cost > costSoFar[current.pos]) {
+            continue;
+        }
+        
+        if (current.pos == goal) {
+            std::cout << "Goal reached! Iterations: " << iterations << std::endl;
+            return reconstructPath(cameFrom, start, goal);
+        }
+        
+        if (isFreeLine(current.pos, goal)) {
+            if (current.prev == current.pos || isValidAngle(current.prev, current.pos, goal, max_turn_angle)) {
+                double newCost = current.cost + distance(current.pos, goal);
+                
+                if (costSoFar.find(goal) == costSoFar.end() || newCost < costSoFar[goal]) {
+                    costSoFar[goal] = newCost;
+                    cameFrom[goal] = current.pos;
+                    
+                    std::vector<Point> pathToCurrentPos = reconstructPath(cameFrom, start, current.pos);
+                    std::vector<Point> linePoints = getLinePoints(current.pos, goal);
+                    pathToCurrentPos.insert(pathToCurrentPos.end(), linePoints.begin() + 1, linePoints.end());
+                    
+                    std::cout << "Found direct path! Total iterations: " << iterations << std::endl;
+                    return pathToCurrentPos;
+                }
+            }
+        }
+        
+        // Передаем delta в getNeighbors
+        std::vector<Point> neighbors = getNeighbors(current.pos, current.prev, max_turn_angle, delta);
+        
+        for (const Point& next : neighbors) {
+            double newCost = current.cost + distance(current.pos, next);
+            
+            if (costSoFar.find(next) == costSoFar.end() || newCost < costSoFar[next]) {
+                costSoFar[next] = newCost;
+                Node nextNode{next, current.pos, newCost, heuristic(next, goal, current.pos)};
+                openSet.push(nextNode);
+                cameFrom[next] = current.pos;
+            }
+        }
+    }
+    
+    std::cout << "No path found after " << iterations << " iterations" << std::endl;
+    return {};
 }
 
-// Добавьте новый метод для получения точек по прямой линии
+// Метод для получения точек по прямой линии
 std::vector<Point> LIAN::getLinePoints(const Point& a, const Point& b) const {
     std::vector<Point> points;
     int dx = std::abs(b.x - a.x);
@@ -180,22 +174,37 @@ bool LIAN::isValidAngle(const Point& prev, const Point& current, const Point& ne
   return angle <= max_turn_angle;
 }
 
-std::vector<Point> LIAN::getNeighbors(const Point& current, const Point& prev, double max_turn_angle) const {
-  std::vector<Point> neighbors;
-  
-  // 8-направленное движение
-  const int dx[] = {-1, 0, 1, -1, 1, -1, 0, 1};
-  const int dy[] = {-1, -1, -1, 0, 0, 1, 1, 1};
-  
-  for (int i = 0; i < 8; ++i) {
-      Point next{current.x + dx[i], current.y + dy[i]};
-      
-      if (isValid(next) && isValidAngle(prev, current, next, max_turn_angle)) {
-          neighbors.push_back(next);
-      }
-  }
-  
-  return neighbors;
+std::vector<Point> LIAN::getNeighbors(const Point& current, const Point& prev, double max_turn_angle, int delta) const {
+    std::vector<Point> neighbors;
+    
+    // 8-направленное движение с шагом delta
+    std::vector<std::pair<int, int>> directions = {
+        {0, delta}, {delta, 0}, {0, -delta}, {-delta, 0},           // прямые
+        {delta, delta}, {delta, -delta}, {-delta, delta}, {-delta, -delta}  // диагональные
+    };
+    
+    for (const auto& [dx, dy] : directions) {
+        Point next{current.x + dx, current.y + dy};
+        
+        if (!isValid(next)) {
+            continue;
+        }
+        
+        // Проверяем, что весь путь от current до next свободен
+        if (!isFreeLine(current, next)) {
+            continue;
+        }
+        
+        if (prev != current) {
+            if (!isValidAngle(prev, current, next, max_turn_angle)) {
+                continue;
+            }
+        }
+        
+        neighbors.push_back(next);
+    }
+    
+    return neighbors;
 }
 
 double LIAN::distance(const Point& a, const Point& b) const {
@@ -204,25 +213,61 @@ double LIAN::distance(const Point& a, const Point& b) const {
   return std::sqrt(dx * dx + dy * dy);
 }
 
-double LIAN::heuristic(const Point& a, const Point& b) const {
-  return distance(a, b);
+double LIAN::heuristic(const Point& current, const Point& goal, const Point& prev) const {
+  double distToGoal = distance(current, goal);
+  
+  // Если это стартовая точка, возвращаем только расстояние
+  if (current == prev) {
+    return distToGoal;
+  }
+  
+  // Штраф за отклонение от прямой линии к цели
+  double directDist = distance(prev, goal);
+  double stepDist = distance(prev, current);
+  double deviation = std::abs((stepDist + distToGoal) - directDist);
+  
+  // Комбинированная эвристика
+  return distToGoal + 3.0 * deviation;
 }
 
 std::vector<Point> LIAN::reconstructPath(
-  const std::unordered_map<Point, Point, PointHash>& cameFrom,
-  const Point& start, const Point& goal) const {
-  
-  std::vector<Point> path;
-  Point current = goal;
-  
-  while (!(current == start)) {
-      path.push_back(current);
-      current = cameFrom.at(current);
-  }
-  path.push_back(start);
-  
-  std::reverse(path.begin(), path.end());
-  return path;
+    const std::unordered_map<Point, Point, PointHash>& cameFrom,
+    const Point& start, const Point& goal) const {
+    
+    std::vector<Point> path;
+    Point current = goal;
+    
+    // Восстанавливаем путь в обратном порядке
+    while (current != start) {
+        path.push_back(current);
+        auto it = cameFrom.find(current);
+        if (it == cameFrom.end()) {
+            return {}; // Путь не найден
+        }
+        current = it->second;
+    }
+    path.push_back(start);
+    
+    // Переворачиваем путь
+    std::reverse(path.begin(), path.end());
+    
+    // Добавляем промежуточные точки между каждыми двумя соседними точками
+    std::vector<Point> detailedPath;
+    
+    for (size_t i = 0; i < path.size(); ++i) {
+        detailedPath.push_back(path[i]);
+        
+        // Если есть следующая точка, добавляем промежуточные точки
+        if (i + 1 < path.size()) {
+            std::vector<Point> linePoints = getLinePoints(path[i], path[i + 1]);
+            // Пропускаем первую точку (она уже добавлена) и последнюю (она будет добавлена на следующей итерации)
+            for (size_t j = 1; j < linePoints.size() - 1; ++j) {
+                detailedPath.push_back(linePoints[j]);
+            }
+        }
+    }
+    
+    return detailedPath;
 }
 
 std::vector<std::vector<int>> readBinaryMap(const std::string& filename) {

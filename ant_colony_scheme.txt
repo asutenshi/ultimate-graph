@@ -1,0 +1,67 @@
+@startuml
+skinparam activityDiamondBorderColor black
+skinparam activityDiamondBackgroundColor white
+skinparam activityBackgroundColor lightblue
+skinparam activityBorderColor black
+
+start
+
+:Инициализация параметров алгоритма:
+- количество муравьев
+- количество итераций
+- коэффициенты alpha, beta
+- скорость испарения феромонов
+- начальный уровень феромонов;
+
+:Инициализация феромонов
+на всех рёбрах графа;
+
+:iteration = 0;
+
+while (iteration < maxIterations?) is (Да)
+  
+  :Создать список путей allCycles = [];
+  
+  fork
+    :Муравей 1;
+    :Построить гамильтонов цикл;
+    :Добавить цикл в allCycles;
+  fork again
+    :Муравей 2;
+    :Построить гамильтонов цикл;
+    :Добавить цикл в allCycles;
+  fork again
+    :Муравей N;
+    :Построить гамильтонов цикл;
+    :Добавить цикл в allCycles;
+  end fork
+  
+  if (allCycles не пуст?) then (Да)
+    :Обновить лучший путь
+    если найден более короткий;
+    
+    :Испарение феромонов:
+    pheromone *= (1 - evaporationRate);
+    
+    :Обновление феромонов
+    на рёбрах найденных циклов:
+    deltaPheromone = Q / cycle.length;
+  else (Нет)
+    :Пропустить обновление;
+  endif
+  
+  :iteration++;
+  
+endwhile (Нет)
+
+if (Лучший цикл найден?) then (Да)
+  :Вернуть лучший
+  гамильтонов цикл;
+else (Нет)
+  :Выбросить исключение:
+  "Гамильтонов цикл не найден";
+endif
+
+stop
+
+@enduml

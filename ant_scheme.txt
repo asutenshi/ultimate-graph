@@ -1,0 +1,57 @@
+@startuml
+skinparam activityDiamondBorderColor black
+skinparam activityDiamondBackgroundColor white
+skinparam activityBackgroundColor lightgreen
+skinparam activityBorderColor black
+
+start
+
+:current = стартовая вершина;
+:visited = {current};
+:path = [current];
+
+while (visited.size < размер графа?) is (Да)
+  
+  :Получить всех непосещённых
+  соседей текущей вершины;
+  
+  if (Есть непосещённые соседи?) then (Да)
+    :Для каждого соседа вычислить
+    вероятность перехода:
+    P = (pheromone^alpha) * (visibility^beta);
+    
+    :Нормализовать вероятности;
+    
+    :Выбрать следующую вершину
+    методом рулетки;
+    
+    :current = выбранная вершина;
+    :Добавить current в visited;
+    :Добавить current в path;
+  else (Нет)
+    :Муравей застрял!;
+    :Вернуть невалидный путь;
+    stop
+  endif
+  
+endwhile (Нет)
+
+:Проверить наличие ребра
+от current к стартовой вершине;
+
+if (Ребро существует?) then (Да)
+  :Добавить стартовую вершину в path
+  (замкнуть цикл);
+  
+  :Вычислить общую длину пути;
+  
+  :Вернуть валидный
+  гамильтонов цикл;
+else (Нет)
+  :Вернуть невалидный путь
+  (не удалось замкнуть цикл);
+endif
+
+stop
+
+@enduml

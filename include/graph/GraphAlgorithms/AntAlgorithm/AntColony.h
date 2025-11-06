@@ -3,6 +3,8 @@
 #include "Ant.h"
 #include "../../Way.h"
 
+#include "../../Utils/Logger.h"
+
 #include <vector>
 #include <memory>
 #include <unordered_map>
@@ -18,28 +20,37 @@ class AntColony {
   double Q;
   double initialPheromone;
   std::unordered_map<int, std::unordered_map<int, double>> pheromones;
+  int minIterations;
+  int stableIterations;
+  double eps;
 
   public:
     AntColony(const T& agraph, int iterations = 100,
-      double evap = 0.5, double q = 100.0, double initPheromone = 0.1)
+      double evap = 0.5, double q = 100.0, double initPheromone = 0.1,
+      int minIter = 0, int stableIter = 0, double epsilon = 1e-6)
       : graph(agraph), maxIterations(iterations),
-        evaporationRate(evap), Q(q), initialPheromone(initPheromone) {}
-    
+        evaporationRate(evap), Q(q), initialPheromone(initPheromone),
+        minIterations(minIter), stableIterations(stableIter), eps(epsilon) {}
+      
     AntColony(const T& agraph, const Ant* antType, int antCount,
       int iterations = 100, double evap = 0.5,
-      double q = 100.0, double initPheromone = 0.1)
+      double q = 100.0, double initPheromone = 0.1,
+      int minIter = 0, int stableIter = 0, double epsilon = 1e-6)
       : graph(agraph), maxIterations(iterations),
-        evaporationRate(evap), Q(q), initialPheromone(initPheromone) {
+        evaporationRate(evap), Q(q), initialPheromone(initPheromone),
+        minIterations(minIter), stableIterations(stableIter), eps(epsilon) {
           for (int i = 0; i < antCount; i++)
             ants.push_back(antType->clone());
         }
-    
+      
     AntColony(const T& agraph, std::vector<std::unique_ptr<Ant>> antList,
       int iterations = 100, double evap = 0.5,
-      double q = 100.0, double initPheromone = 0.1)
+      double q = 100.0, double initPheromone = 0.1,
+      int minIter = 0, int stableIter = 0, double epsilon = 1e-6)
       : graph(agraph), ants(std::move(antList)),
       maxIterations(iterations), evaporationRate(evap),
-      Q(q), initialPheromone(initPheromone) {}
+      Q(q), initialPheromone(initPheromone),
+      minIterations(minIter), stableIterations(stableIter), eps(epsilon) {}
 
     void addAnt(std::unique_ptr<Ant> ant) {
       ants.push_back(std::move(ant));   }
@@ -131,12 +142,17 @@ Way AntColony<T>::findShortestHamiltonianCycle() {
   initializePheromones();
   
   Way bestCycle;
+
+  int bestStableCount = 0;
+  double lastBestLength = -1.0;
   
   std::random_device rd;
   std::mt19937 rng(rd());
   
   // Начальная вершина - первая вершина графа
   int startVertex = adjList.begin()->first;
+
+  clearFile("./logs/antColony.txt");
   
   for (int iteration = 0; iteration < maxIterations; ++iteration) {
     std::vector<Way> allCycles;
@@ -153,6 +169,23 @@ Way AntColony<T>::findShortestHamiltonianCycle() {
           bestCycle = cycle;
         }
       }
+
+      double pheromoneSum = 0.0;
+      if (bestCycle.isValid() && bestCycle.nodes.size() > 1) {
+          for (size_t i = 0; i < bestCycle.nodes.size() - 1; ++i) {
+              int from = bestCycle.nodes[i];
+              int to = bestCycle.nodes[i + 1];
+              pheromoneSum += getPheromone(from, to);
+          }
+      }
+
+      logToFile(
+          "./logs/antColony.txt",
+          std::to_string(iteration) + " " +
+          std::to_string(bestCycle.length) + " " +
+          std::to_string(cycle.length) + " " +
+          std::to_string(pheromoneSum)
+      );
     }
     
     // Если ни один муравей не нашёл цикл, продолжаем
@@ -161,6 +194,20 @@ Way AntColony<T>::findShortestHamiltonianCycle() {
     // Обновление феромонов
     evaporatePheromones();
     updatePheromones(allCycles);
+
+    if (bestCycle.isValid() && minIterations != 0 && stableIterations != 0) {
+      if (iteration >= minIterations) {
+        if (std::abs(bestCycle.length - lastBestLength) <= eps) {
+          bestStableCount++;
+          if (bestStableCount >= stableIterations) {
+            break; // Достигнута стабильность, выходим из цикла
+          }
+        } else {
+          bestStableCount = 0;
+        }
+      }
+      lastBestLength = bestCycle.length;
+    }
   }
   
   // Проверка, найден ли цикл

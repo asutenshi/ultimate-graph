@@ -7,6 +7,8 @@ public:
 
     virtual void addNode(int node_id) = 0;
     virtual void addEdge(int u, int v, double weight = 1.0) = 0;
+    virtual void removeNode(int node_id) = 0;
+    virtual void removeEdge(int u, int v) = 0;
     virtual void loadFromFile(const std::string& filename) = 0;
     virtual void print() const = 0;
 };

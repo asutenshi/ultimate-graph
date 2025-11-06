@@ -12,6 +12,8 @@ public:
     const Graph<int>& getGraph() const { return graph; }
     void addNode(int node_id) override;
     void addEdge(int u, int v, double weight = 1.0) override;
+    void removeNode(int node_id) { graph.removeNode(node_id); }
+    void removeEdge(int u, int v) { graph.removeEdge(u, v); }
     void loadFromFile(const std::string& filename) override;
     void print() const override;
 };
@@ -26,6 +28,8 @@ public:
     const Graph<WeightedEdge>& getGraph() const { return graph; }
     void addNode(int node_id) override;
     void addEdge(int u, int v, double weight = 1.0) override;
+    void removeNode(int node_id) { graph.removeNode(node_id); }
+    void removeEdge(int u, int v) { graph.removeEdge(u, v); }
     void loadFromFile(const std::string& filename) override;
     void print() const override;
 };
