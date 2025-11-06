@@ -67,17 +67,26 @@ std::vector<Point> LIAN::findPath(const Point& start, const Point& goal, double 
             }
         }
         
-        // Передаем delta в getNeighbors
         std::vector<Point> neighbors = getNeighbors(current.pos, current.prev, max_turn_angle, delta);
         
         for (const Point& next : neighbors) {
-            double newCost = current.cost + distance(current.pos, next);
+            Point parent = current.pos;
+            double costToParent = current.cost;
+
+            // Ключевая логика LIAN/Theta*: пытаемся "срезать" путь
+            if (current.prev != current.pos && isFreeLine(current.prev, next)) {
+                parent = current.prev;
+                // Стоимость пути до родителя current.prev уже посчитана в costSoFar
+                costToParent = costSoFar[parent];
+            }
+
+            double newCost = costToParent + distance(parent, next);
             
             if (costSoFar.find(next) == costSoFar.end() || newCost < costSoFar[next]) {
                 costSoFar[next] = newCost;
-                Node nextNode{next, current.pos, newCost, heuristic(next, goal, current.pos)};
+                Node nextNode{next, parent, newCost, heuristic(next, goal, parent)};
                 openSet.push(nextNode);
-                cameFrom[next] = current.pos;
+                cameFrom[next] = parent;
             }
         }
     }
