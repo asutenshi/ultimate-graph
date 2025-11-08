@@ -186,31 +186,64 @@ bool LIAN::isValidAngle(const Point& prev, const Point& current, const Point& ne
 std::vector<Point> LIAN::getNeighbors(const Point& current, const Point& prev, double max_turn_angle, int delta) const {
     std::vector<Point> neighbors;
     
-    // 8-направленное движение с шагом delta
-    std::vector<std::pair<int, int>> directions = {
-        {0, delta}, {delta, 0}, {0, -delta}, {-delta, 0},           // прямые
-        {delta, delta}, {delta, -delta}, {-delta, delta}, {-delta, -delta}  // диагональные
-    };
+    // Алгоритм Брезенхема для окружности - генерирует точки только на окружности
+    int x = 0;
+    int y = delta;
+    int d = 3 - 2 * delta;
     
-    for (const auto& [dx, dy] : directions) {
-        Point next{current.x + dx, current.y + dy};
+    // Вспомогательная функция для добавления 8 симметричных точек
+    auto addSymmetricPoints = [&](int dx, int dy) {
+        std::vector<std::pair<int, int>> symmetricPoints = {
+            {dx, dy}, {-dx, dy}, {dx, -dy}, {-dx, -dy},
+            {dy, dx}, {-dy, dx}, {dy, -dx}, {-dy, -dx}
+        };
         
-        if (!isValid(next)) {
-            continue;
-        }
-        
-        // Проверяем, что весь путь от current до next свободен
-        if (!isFreeLine(current, next)) {
-            continue;
-        }
-        
-        if (prev != current) {
-            if (!isValidAngle(prev, current, next, max_turn_angle)) {
+        for (const auto& [offsetX, offsetY] : symmetricPoints) {
+            // Пропускаем дубликаты (когда dx == dy или один из них == 0)
+            if (offsetX == 0 && offsetY == 0) continue;
+            
+            Point next{current.x + offsetX, current.y + offsetY};
+            
+            if (!isValid(next)) {
                 continue;
             }
+            
+            if (!isFreeLine(current, next)) {
+                continue;
+            }
+            
+            if (prev != current) {
+                if (!isValidAngle(prev, current, next, max_turn_angle)) {
+                    continue;
+                }
+            }
+            
+            // Проверяем, что точка еще не добавлена (для избежания дубликатов)
+            bool alreadyAdded = false;
+            for (const auto& n : neighbors) {
+                if (n.x == next.x && n.y == next.y) {
+                    alreadyAdded = true;
+                    break;
+                }
+            }
+            
+            if (!alreadyAdded) {
+                neighbors.push_back(next);
+            }
         }
+    };
+    
+    // Генерируем точки окружности
+    while (x <= y) {
+        addSymmetricPoints(x, y);
         
-        neighbors.push_back(next);
+        if (d < 0) {
+            d = d + 4 * x + 6;
+        } else {
+            d = d + 4 * (x - y) + 10;
+            y--;
+        }
+        x++;
     }
     
     return neighbors;

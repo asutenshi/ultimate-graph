@@ -75,7 +75,7 @@ int main() {
 
   Point start{165, 304};
   Point goal{1287, 690};
-  double maxAngle = 46.0;
+  double maxAngle = 30.0;
   int delta = 20;
 
   std::vector<Point> path = alg.findPath(start, goal, maxAngle, delta);
