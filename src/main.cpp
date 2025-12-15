@@ -45,50 +45,51 @@ int main() {
 
 //  ---
   
-  // try {
+  try {
     // TODO: перенести остановку в условие продолжения
     // WeightedGraph graph("./data/ant_graph_small.txt");
     // WeightedGraph graph("./data/1000.txt");
-  //   WeightedGraph graph("./data/ai_studio_graph.txt");
+    WeightedGraph graph("./data/ai_studio_graph.txt");
   
-  //   graph.print();
+    graph.print();
   
-  //   GraphAlgorithms<Graph<WeightedEdge>> algorithms(graph.getGraph());
-  //   std::cout << std::endl << algorithms.antAlgorithm<BalancedAnt>(
-  //     20,         // antCount
-  //     150,        // maxIterations
-  //     0.025,        // evaporationRate
-  //     100.0,      // Q
-  //     0.1,       // initialPheromone
-  //     0,         // minIterations
-  //     0,         // stableIterations
-  //     0.001       // eps
-  //   ) << std::endl;
-  // } catch (const std::exception& ex) {
-  //     std::cout << "\nAlgorithm error: " << ex.what() << std::endl;
-  // }
-
-  //---
-
-  std::vector<std::vector<int>> map = readBinaryMap("./data/binary_map.txt");
-  LIAN alg = LIAN(map);
-
-  Point start{165, 304};
-  Point goal{1287, 690};
-  double maxAngle = 30.0;
-  int delta = 20;
-
-  std::vector<Point> path = alg.findPath(start, goal, maxAngle, delta);
-
-  if (!path.empty()) {
-      std::cout << "Path found with " << path.size() << " points:" << std::endl;
-      for (const auto& p : path) {
-          std::cout << "(" << p.x << ", " << p.y << ") ";
-      }
-      saveMapWithPath(map, path, "./output/map_with_path.txt");
-  } else {
-      std::cout << "No path found" << std::endl;
+    GraphAlgorithms<Graph<WeightedEdge>> algorithms(graph.getGraph());
+    std::cout << std::endl << algorithms.antAlgorithm<BalancedAnt>(
+      20,         // antCount
+      150,        // maxIterations
+      0.025,        // evaporationRate
+      100.0,      // Q
+      0.1,       // initialPheromone
+      0,         // minIterations
+      0,         // stableIterations
+      0.001       // eps
+    ) << std::endl;
+  } catch (const std::exception& ex) {
+      std::cout << "\nAlgorithm error: " << ex.what() << std::endl;
   }
+
+  // ---
+
+  // std::vector<std::vector<int>> map = readBinaryMap("./data/binary_map.txt");
+  // LIAN alg = LIAN(map);
+
+  // // Point start{165, 304};
+  // Point start{213, 623};
+  // Point goal{1287, 690};
+  // double maxAngle = 90.0;
+  // int delta = 15;
+
+  // std::vector<Point> path = alg.findPath(start, goal, maxAngle, delta);
+
+  // if (!path.empty()) {
+  //     std::cout << "Path found with " << path.size() << " points:" << std::endl;
+  //     for (const auto& p : path) {
+  //         std::cout << "(" << p.x << ", " << p.y << ") ";
+  //     }
+  //     saveMapWithPath(map, path, "./output/map_with_path.txt");
+  // } else {
+  //     std::cout << "No path found" << std::endl;
+  // }
 
   return 0;
 }
