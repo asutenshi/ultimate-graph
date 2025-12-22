@@ -35,12 +35,23 @@ struct Node {
 class LIAN {
 public:
     LIAN(const std::vector<std::vector<int>>& grid);
+    LIAN(const std::vector<std::vector<int>>& grid, const std::string& configFile);
     std::vector<Point> findPath(const Point& start, const Point& goal, double max_turn_angle, int delta = 1);
+    std::vector<Point> findPath();
 
 private:
     std::vector<std::vector<int>> map_;
     int rows_;
     int cols_;
+
+    Point start_ = {0, 0};
+    Point goal_ = {0, 0};
+    double maxAngle_ = 0.0;
+    int delta_ = 1;
+
+    void loadConfig(const std::string& filename);
+
+
     
     bool isValid(const Point& p) const;
     bool isFreeLine(const Point& a, const Point& b) const;
@@ -57,3 +68,4 @@ private:
 
 std::vector<std::vector<int>> readBinaryMap(const std::string& filename);
 bool saveMapWithPath(const std::vector<std::vector<int>>& grid, const std::vector<Point>& path, const std::string& filename);
+bool savePathToCSV(const std::vector<Point>& path, const std::string& filename);

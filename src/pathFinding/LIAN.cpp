@@ -13,6 +13,64 @@ LIAN::LIAN(const std::vector<std::vector<int>>& map)
   cols_ = rows_ > 0 ? map[0].size() : 0;
 }
 
+LIAN::LIAN(const std::vector<std::vector<int>>& grid, const std::string& configFile)
+    : map_(grid) {
+    rows_ = map_.size();
+    cols_ = rows_ > 0 ? map_[0].size() : 0;
+    loadConfig(configFile);
+}
+
+std::vector<Point> LIAN::findPath() {
+    return findPath(start_, goal_, maxAngle_, delta_);
+}
+
+void LIAN::loadConfig(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Cannot open config file: " + filename);
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        size_t first = line.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos) continue;
+        size_t last = line.find_last_not_of(" \t\r\n");
+        std::string trimmed = line.substr(first, (last - first + 1));
+
+        if (trimmed.empty() || trimmed[0] == '[' || trimmed[0] == '#') continue;
+
+        size_t eqPos = trimmed.find('=');
+        if (eqPos != std::string::npos) {
+            std::string key = trimmed.substr(0, eqPos);
+            std::string value = trimmed.substr(eqPos + 1);
+
+            while (!key.empty() && (key.back() == ' ' || key.back() == '\t')) key.pop_back();
+            size_t valStart = value.find_first_not_of(" \t");
+            if (valStart != std::string::npos) value = value.substr(valStart);
+
+            for (char &c : key) c = std::tolower(c);
+
+            try {
+                if (key == "start" || key == "goal") {
+                    size_t commaPos = value.find(',');
+                    if (commaPos != std::string::npos) {
+                        int x = std::stoi(value.substr(0, commaPos));
+                        int y = std::stoi(value.substr(commaPos + 1));
+                        if (key == "start") start_ = {x, y};
+                        else goal_ = {x, y};
+                    }
+                } else if (key == "maxangle") {
+                    maxAngle_ = std::stod(value);
+                } else if (key == "delta") {
+                    delta_ = std::stoi(value);
+                }
+            } catch (...) {
+            }
+        }
+    }
+    file.close();
+}
+
 std::vector<Point> LIAN::findPath(const Point& start, const Point& goal, double max_turn_angle, int delta) {
     if (!isValid(start) || !isValid(goal)) {
         std::cout << "Invalid start or goal!" << std::endl;
@@ -45,6 +103,20 @@ std::vector<Point> LIAN::findPath(const Point& start, const Point& goal, double 
         if (costSoFar.count(current.pos) && current.cost > costSoFar[current.pos]) {
             continue;
         }
+
+        // FIX: Проверка валидности угла с актуальным родителем
+        if (current.prev != current.pos) {
+            Point grandParent = current.prev;
+            if (cameFrom.count(current.prev)) {
+                grandParent = cameFrom.at(current.prev);
+            }
+            
+            if (grandParent != current.prev) {
+                if (!isValidAngle(grandParent, current.prev, current.pos, max_turn_angle)) {
+                    continue;
+                }
+            }
+        }
         
         if (current.pos == goal) {
             std::cout << "Goal reached! Iterations: " << iterations << std::endl;
@@ -75,10 +147,21 @@ std::vector<Point> LIAN::findPath(const Point& start, const Point& goal, double 
             Point parent = current.pos;
             double costToParent = current.cost;
 
-            // Ключевая логика LIAN/Theta*: пытаемся "срезать" путь
+            bool canShortcut = false;
+            
             if (current.prev != current.pos && isFreeLine(current.prev, next)) {
+                Point grandParent = current.prev;
+                if (cameFrom.count(current.prev)) {
+                    grandParent = cameFrom.at(current.prev);
+                }
+
+                if (isValidAngle(grandParent, current.prev, next, max_turn_angle)) {
+                    canShortcut = true;
+                }
+            }
+
+            if (canShortcut) {
                 parent = current.prev;
-                // Стоимость пути до родителя current.prev уже посчитана в costSoFar
                 costToParent = costSoFar[parent];
             }
 
@@ -96,6 +179,56 @@ std::vector<Point> LIAN::findPath(const Point& start, const Point& goal, double 
     std::cout << "No path found after " << iterations << " iterations" << std::endl;
     return {};
 }
+
+bool savePathToCSV(const std::vector<Point>& path, const std::string& filename) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Cannot open file for CSV: " << filename << std::endl;
+        return false;
+    }
+
+    file << "x,y,angle\n";
+
+    for (size_t i = 0; i < path.size(); ++i) {
+        double angle = 0.0;
+
+        // Угол вычисляем только для внутренних точек (нужны prev и next)
+        if (i > 0 && i < path.size() - 1) {
+            const Point& prev = path[i - 1];
+            const Point& curr = path[i];
+            const Point& next = path[i + 1];
+
+            // Вектор 1: prev -> curr
+            double dx1 = curr.x - prev.x;
+            double dy1 = curr.y - prev.y;
+            
+            // Вектор 2: curr -> next
+            double dx2 = next.x - curr.x;
+            double dy2 = next.y - curr.y;
+
+            double dot = dx1 * dx2 + dy1 * dy2;
+            double mag1 = std::sqrt(dx1 * dx1 + dy1 * dy1);
+            double mag2 = std::sqrt(dx2 * dx2 + dy2 * dy2);
+
+            if (mag1 > 0 && mag2 > 0) {
+                double cosAngle = dot / (mag1 * mag2);
+                // Ограничиваем диапазон [-1, 1] для защиты от погрешностей float
+                cosAngle = std::max(-1.0, std::min(1.0, cosAngle));
+                
+                // acos возвращает радианы, переводим в градусы
+                // Угол 0 означает движение прямо, 180 - разворот
+                angle = std::acos(cosAngle) * 180.0 / std::numbers::pi;
+            }
+        }
+
+        file << path[i].x << "," << path[i].y << "," << angle << "\n";
+    }
+
+    file.close();
+    std::cout << "Path CSV saved to: " << filename << std::endl;
+    return true;
+}
+
 
 // Метод для получения точек по прямой линии
 std::vector<Point> LIAN::getLinePoints(const Point& a, const Point& b) const {
@@ -278,6 +411,7 @@ std::vector<Point> LIAN::reconstructPath(
     
     // Переворачиваем путь
     std::reverse(path.begin(), path.end());
+    savePathToCSV(path, "./output/lian.csv");
     
     // Добавляем промежуточные точки между каждыми двумя соседними точками
     std::vector<Point> detailedPath;

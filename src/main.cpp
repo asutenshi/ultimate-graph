@@ -75,54 +75,56 @@ int main() {
 
   // ---
 
-  try {
-    WeightedGraph graph("./data/ai_studio_graph.txt");
+  // try {
+  //   WeightedGraph graph("./data/ai_studio_graph.txt");
   
-    graph.print();
+  //   graph.print();
   
-    AntColony<Graph<WeightedEdge>> colony(
-      graph.getGraph(),
-      "./config/ant.cfg",
-      150,        // maxIterations
-      0.025,      // evaporationRate
-      100.0,      // Q
-      0.1,        // initialPheromone
-      0,          // minIterations
-      0,          // stableIterations
-      0.001       // eps
-    );
+  //   AntColony<Graph<WeightedEdge>> colony(
+  //     graph.getGraph(),
+  //     "./config/ant.cfg",
+  //     150,        // maxIterations
+  //     0.025,      // evaporationRate
+  //     100.0,      // Q
+  //     0.1,        // initialPheromone
+  //     0,          // minIterations
+  //     0,          // stableIterations
+  //     0.001       // eps
+  //   );
     
-    std::cout << "Colony created with " << colony.getAntCount() << " ants" << std::endl;
+  //   std::cout << "Colony created with " << colony.getAntCount() << " ants" << std::endl;
     
-    Way result = colony.findShortestHamiltonianCycle();
-    std::cout << std::endl << result << std::endl;
+  //   Way result = colony.findShortestHamiltonianCycle();
+  //   std::cout << std::endl << result << std::endl;
     
-  } catch (const std::exception& ex) {
-      std::cout << "\nAlgorithm error: " << ex.what() << std::endl;
-  }
+  // } catch (const std::exception& ex) {
+  //     std::cout << "\nAlgorithm error: " << ex.what() << std::endl;
+  // }
 
   // ---
 
-  // std::vector<std::vector<int>> map = readBinaryMap("./data/binary_map.txt");
-  // LIAN alg = LIAN(map);
+  std::vector<std::vector<int>> map = readBinaryMap("./data/binary_map.txt");
+  LIAN alg = LIAN(map, "./config/lian.cfg");
 
-  // // Point start{165, 304};
+  // Point start{165, 304};
   // Point start{213, 623};
   // Point goal{1287, 690};
   // double maxAngle = 90.0;
   // int delta = 15;
 
   // std::vector<Point> path = alg.findPath(start, goal, maxAngle, delta);
+  std::vector<Point> path = alg.findPath();
 
-  // if (!path.empty()) {
-  //     std::cout << "Path found with " << path.size() << " points:" << std::endl;
-  //     for (const auto& p : path) {
-  //         std::cout << "(" << p.x << ", " << p.y << ") ";
-  //     }
-  //     saveMapWithPath(map, path, "./output/map_with_path.txt");
-  // } else {
-  //     std::cout << "No path found" << std::endl;
-  // }
+  if (!path.empty()) {
+      std::cout << "Path found with " << path.size() << " points:" << std::endl;
+      for (const auto& p : path) {
+          std::cout << "(" << p.x << ", " << p.y << ") ";
+      }
+
+      saveMapWithPath(map, path, "./output/map_with_path.txt");
+  } else {
+      std::cout << "No path found" << std::endl;
+  }
 
   return 0;
 }
