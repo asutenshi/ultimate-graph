@@ -75,56 +75,76 @@ int main() {
 
   // ---
 
-  // try {
-  //   WeightedGraph graph("./data/ai_studio_graph.txt");
+  // ---
+
+  try {
+    std::string configFile = "./config/ant.cfg";
+    
+    // 1. Считываем пути из конфига
+    std::string graphFile = AntColony<Graph<WeightedEdge>>::readGraphPath(configFile);
+    std::string outputFile = AntColony<Graph<WeightedEdge>>::readOutputPath(configFile);
+
+    if (graphFile.empty()) {
+        std::cout << "Graph file not specified in config, using default." << std::endl;
+        graphFile = "./data/ai_studio_graph.txt";
+    } else {
+        std::cout << "Loading graph from: " << graphFile << std::endl;
+    }
+
+    // 2. Загружаем граф
+    WeightedGraph graph(graphFile);
+    graph.print();
   
-  //   graph.print();
-  
-  //   AntColony<Graph<WeightedEdge>> colony(
-  //     graph.getGraph(),
-  //     "./config/ant.cfg",
-  //     150,        // maxIterations
-  //     0.025,      // evaporationRate
-  //     100.0,      // Q
-  //     0.1,        // initialPheromone
-  //     0,          // minIterations
-  //     0,          // stableIterations
-  //     0.001       // eps
-  //   );
+    // 3. Создаем колонию
+    AntColony<Graph<WeightedEdge>> colony(
+      graph.getGraph(),
+      configFile
+    );
     
-  //   std::cout << "Colony created with " << colony.getAntCount() << " ants" << std::endl;
+    std::cout << "Colony created with " << colony.getAntCount() << " ants" << std::endl;
     
-  //   Way result = colony.findShortestHamiltonianCycle();
-  //   std::cout << std::endl << result << std::endl;
+    Way result = colony.findShortestHamiltonianCycle();
+    std::cout << std::endl << result << std::endl;
     
-  // } catch (const std::exception& ex) {
-  //     std::cout << "\nAlgorithm error: " << ex.what() << std::endl;
-  // }
+    // 4. Сохраняем результат в файл из конфига
+    if (outputFile.empty()) {
+        std::cout << "Output file not specified, using default: ./output/ant_result.txt" << std::endl;
+        outputFile = "./output/ant_result.txt";
+    }
+    saveWayToFile(result, outputFile);
+    
+  } catch (const std::exception& ex) {
+      std::cout << "\nAlgorithm error: " << ex.what() << std::endl;
+  }
 
   // ---
 
-  std::vector<std::vector<int>> map = readBinaryMap("./data/binary_map.txt");
-  LIAN alg = LIAN(map, "./config/lian.cfg");
+  // std::vector<std::vector<int>> map = readBinaryMap("./data/binary_map.txt");
+  // LIAN alg = LIAN(map, "./config/lian.cfg");
 
-  // Point start{165, 304};
-  // Point start{213, 623};
-  // Point goal{1287, 690};
-  // double maxAngle = 90.0;
-  // int delta = 15;
+  // // Point start{165, 304};
+  // // Point start{213, 623};
+  // // Point goal{1287, 690};
+  // // double maxAngle = 90.0;
+  // // int delta = 15;
 
-  // std::vector<Point> path = alg.findPath(start, goal, maxAngle, delta);
-  std::vector<Point> path = alg.findPath();
+  // // std::vector<Point> path = alg.findPath(start, goal, maxAngle, delta);
+  // std::vector<Point> path = alg.findPath();
 
-  if (!path.empty()) {
-      std::cout << "Path found with " << path.size() << " points:" << std::endl;
-      for (const auto& p : path) {
-          std::cout << "(" << p.x << ", " << p.y << ") ";
-      }
+  // if (!path.empty()) {
+  //     std::cout << "Path found with " << path.size() << " points:" << std::endl;
+  //     for (const auto& p : path) {
+  //         std::cout << "(" << p.x << ", " << p.y << ") ";
+  //     }
 
-      saveMapWithPath(map, path, "./output/map_with_path.txt");
-  } else {
-      std::cout << "No path found" << std::endl;
-  }
+  //     saveMapWithPath(map, path, "./output/map_with_path.txt");
+  // } else {
+  //     std::cout << "No path found" << std::endl;
+  // }
 
   return 0;
 }
+
+// конфиг файл (все параметры + входной/выходной файлы)
+// схема работы + схема классов
+// выходной файл с результатом работы

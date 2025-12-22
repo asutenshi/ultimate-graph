@@ -57,8 +57,69 @@ class AntColony {
       : graph(agraph), maxIterations(iterations),
         evaporationRate(evap), Q(q), initialPheromone(initPheromone),
         minIterations(minIter), stableIterations(stableIter), eps(epsilon) {
-          loadAntsFromConfig(configFile);
+          loadConfig(configFile);
         }
+    
+    static std::string readGraphPath(const std::string& configFile) {
+        std::ifstream file(configFile);
+        if (!file.is_open()) return "";
+        
+        std::string line;
+        while (std::getline(file, line)) {
+            size_t eqPos = line.find('=');
+            if (eqPos != std::string::npos) {
+                std::string key = line.substr(0, eqPos);
+                std::string value = line.substr(eqPos + 1);
+                
+                // Очистка ключа
+                while (!key.empty() && (key.back() == ' ' || key.back() == '\t')) key.pop_back();
+                size_t kStart = key.find_first_not_of(" \t");
+                if (kStart != std::string::npos) key = key.substr(kStart);
+                
+                // Очистка значения
+                size_t vStart = value.find_first_not_of(" \t");
+                if (vStart != std::string::npos) value = value.substr(vStart);
+                while (!value.empty() && (value.back() == ' ' || value.back() == '\t' || value.back() == '\r')) value.pop_back();
+
+                // Приводим ключ к нижнему регистру
+                for (char &c : key) c = std::tolower(c);
+
+                if (key == "graphfile" || key == "graph") {
+                    return value;
+                }
+            }
+        }
+        return "";
+    }
+
+    static std::string readOutputPath(const std::string& configFile) {
+        std::ifstream file(configFile);
+        if (!file.is_open()) return "";
+        
+        std::string line;
+        while (std::getline(file, line)) {
+            size_t eqPos = line.find('=');
+            if (eqPos != std::string::npos) {
+                std::string key = line.substr(0, eqPos);
+                std::string value = line.substr(eqPos + 1);
+                
+                while (!key.empty() && (key.back() == ' ' || key.back() == '\t')) key.pop_back();
+                size_t kStart = key.find_first_not_of(" \t");
+                if (kStart != std::string::npos) key = key.substr(kStart);
+                
+                size_t vStart = value.find_first_not_of(" \t");
+                if (vStart != std::string::npos) value = value.substr(vStart);
+                while (!value.empty() && (value.back() == ' ' || value.back() == '\t' || value.back() == '\r')) value.pop_back();
+
+                for (char &c : key) c = std::tolower(c);
+
+                if (key == "outputfile" || key == "output") {
+                    return value;
+                }
+            }
+        }
+        return "";
+    }
 
     void addAnt(std::unique_ptr<Ant> ant) {
       ants.push_back(std::move(ant));   }
@@ -75,7 +136,7 @@ class AntColony {
     Way findShortestHamiltonianCycle();
 
     private:
-      void loadAntsFromConfig(const std::string& filename);
+      void loadConfig(const std::string& filename);
       void initializePheromones();
       Way constructHamiltonianCycle(int start, const Ant& ant, std::mt19937& rng);
       int selectNextNode(int current, const std::unordered_set<int>& visited, 
@@ -99,17 +160,20 @@ void AntColony<T>::initializePheromones() {
 }
 
 template <typename T>
-void AntColony<T>::loadAntsFromConfig(const std::string& filename) {
+void AntColony<T>::loadConfig(const std::string& filename) {
   std::ifstream file(filename);
   if (!file.is_open()) {
     throw std::runtime_error("Cannot open config file: " + filename);
   }
 
   std::string line;
+  
+  // Переменные для парсинга муравьев
   double currentAlpha = 0.0;
   double currentBeta = 0.0;
   int currentCount = 0;
-  bool sectionStarted = false;
+  bool antSectionStarted = false;
+  bool generalSection = false;
 
   while (std::getline(file, line)) {
     size_t first = line.find_first_not_of(" \t\r\n");
@@ -119,16 +183,28 @@ void AntColony<T>::loadAntsFromConfig(const std::string& filename) {
 
     if (trimmed.empty() || trimmed[0] == '#' || trimmed[0] == ';') continue;
 
+    // Обработка заголовков секций
     if (trimmed.front() == '[' && trimmed.back() == ']') {
-      if (sectionStarted && currentCount > 0) {
+      // Если закончилась секция муравья, сохраняем предыдущих
+      if (antSectionStarted && currentCount > 0) {
         for (int i = 0; i < currentCount; ++i) {
           ants.push_back(std::make_unique<CustomAnt>(currentAlpha, currentBeta));
         }
       }
-      currentAlpha = 0.0;
-      currentBeta = 0.0;
-      currentCount = 0;
-      sectionStarted = true;
+      
+      std::string section = trimmed.substr(1, trimmed.size() - 2);
+      for (char &c : section) c = std::tolower(c);
+
+      if (section == "general" || section == "settings" || section == "config") {
+          generalSection = true;
+          antSectionStarted = false;
+      } else {
+          generalSection = false;
+          antSectionStarted = true;
+          currentAlpha = 0.0;
+          currentBeta = 0.0;
+          currentCount = 0;
+      }
       continue;
     }
 
@@ -138,22 +214,35 @@ void AntColony<T>::loadAntsFromConfig(const std::string& filename) {
       std::string value = trimmed.substr(eqPos + 1);
 
       while (!key.empty() && (key.back() == ' ' || key.back() == '\t')) key.pop_back();
-      
       size_t valStart = value.find_first_not_of(" \t");
       if (valStart != std::string::npos) value = value.substr(valStart);
 
       for (char &c : key) c = std::tolower(c);
 
       try {
-        if (key == "alpha") currentAlpha = std::stod(value);
-        else if (key == "beta" || key == "betta") currentBeta = std::stod(value);
-        else if (key == "count" || key == "n") currentCount = std::stoi(value);
+        if (generalSection) {
+            // Парсинг общих настроек
+            if (key == "iterations" || key == "maxiterations") maxIterations = std::stoi(value);
+            else if (key == "evaporation" || key == "evaporationrate") evaporationRate = std::stod(value);
+            else if (key == "q") Q = std::stod(value);
+            else if (key == "initialpheromone") initialPheromone = std::stod(value);
+            else if (key == "miniterations" || key == "miniter") minIterations = std::stoi(value);
+            else if (key == "stableiterations" || key == "stableiter") stableIterations = std::stoi(value);
+            else if (key == "epsilon" || key == "eps") eps = std::stod(value);
+        } else if (antSectionStarted) {
+            // Парсинг настроек муравьев
+            if (key == "alpha") currentAlpha = std::stod(value);
+            else if (key == "beta" || key == "betta") currentBeta = std::stod(value);
+            else if (key == "count" || key == "n") currentCount = std::stoi(value);
+        }
       } catch (...) {
+          // Игнорируем ошибки парсинга отдельных строк
       }
     }
   }
   
-  if (sectionStarted && currentCount > 0) {
+  // Сохраняем последнего муравья
+  if (antSectionStarted && currentCount > 0) {
     for (int i = 0; i < currentCount; ++i) {
       ants.push_back(std::make_unique<CustomAnt>(currentAlpha, currentBeta));
     }
@@ -426,4 +515,19 @@ void AntColony<T>::evaporatePheromones() {
       }
     }
   }
+}
+
+inline void saveWayToFile(const Way& way, const std::string& filename) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << " for writing." << std::endl;
+        return;
+    }
+    
+    for (const auto& node : way.nodes) {
+        file << node << "\n";
+    }
+    
+    file.close();
+    std::cout << "Way saved to: " << filename << std::endl;
 }

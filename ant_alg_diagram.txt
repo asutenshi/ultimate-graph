@@ -1,0 +1,106 @@
+@startuml AntColony Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam style strictuml
+
+class Way <<struct>> {
+  +nodes: std::vector<int>
+  +length: double
+  --
+  +isValid(): bool
+  <i>Проверка валидности пути</i>
+}
+
+abstract class Ant {
+  <i>Абстрактный базовый класс муравья</i>
+  ==
+  #alpha: double
+  <i>Коэффициент важности феромона</i>
+  #beta: double
+  <i>Коэффициент важности расстояния</i>
+  --
+  +Ant(a: double, b: double)
+  <i>Конструктор с параметрами</i>
+  +{abstract} clone(): std::unique_ptr<Ant>
+  <i>Создание копии (паттерн Прототип)</i>
+  +getAlpha(): double
+  <i>Получить alpha</i>
+  +getBeta(): double
+  <i>Получить beta</i>
+}
+
+class CustomAnt {
+  <i>Настраиваемый тип муравья</i>
+  ==
+  +CustomAnt(a: double, b: double)
+  <i>Конструктор</i>
+  +clone(): std::unique_ptr<Ant>
+  <i>Реализация клонирования</i>
+}
+
+class "AntColony<T>" as AntColony {
+  <i>Основной класс алгоритма муравьиной колонии</i>
+  ==
+  -graph: const T&
+  <i>Ссылка на обрабатываемый граф</i>
+  -ants: std::vector<std::unique_ptr<Ant>>
+  <i>Колония (список) муравьев</i>
+  -pheromones: unordered_map<int, unordered_map<int, double>>
+  <i>Матрица феромонов на ребрах</i>
+  -maxIterations: int
+  <i>Максимум итераций алгоритма</i>
+  -evaporationRate: double
+  <i>Скорость испарения феромона</i>
+  -Q: double
+  <i>Количество оставляемого феромона</i>
+  -initialPheromone: double
+  <i>Начальный уровень феромона</i>
+  -minIterations: int
+  <i>Минимум итераций до проверки стабильности</i>
+  -stableIterations: int
+  <i>Требуемое число стабильных итераций</i>
+  -eps: double
+  <i>Погрешность вычислений</i>
+  --
+  +AntColony(graph: T&, iterations: int, ...)
+  <i>Конструктор с параметрами</i>
+  +AntColony(graph: T&, configFile: string, ...)
+  <i>Конструктор с загрузкой из файла</i>
+  +findShortestHamiltonianCycle(): Way
+  <i>Запуск поиска кратчайшего цикла</i>
+  +addAnt(ant: unique_ptr<Ant>): void
+  <i>Добавление одного муравья</i>
+  +addAnts<AntType>(count: int): void
+  <i>Добавление группы муравьев</i>
+  +{static} readGraphPath(configFile: string): string
+  <i>Чтение пути к графу из конфига</i>
+  +{static} readOutputPath(configFile: string): string
+  <i>Чтение пути вывода из конфига</i>
+  --
+  -loadConfig(filename: string): void
+  <i>Парсинг конфигурационного файла</i>
+  -initializePheromones(): void
+  <i>Заполнение начальными феромонами</i>
+  -constructHamiltonianCycle(start: int, ant: Ant, rng: mt19937): Way
+  <i>Построение пути одним муравьем</i>
+  -selectNextNode(curr: int, visited: set, ant: Ant, rng: mt19937): int
+  <i>Выбор следующей вершины (рулетка)</i>
+  -calculateProbability(pher: double, dist: double, ant: Ant): double
+  <i>Расчет вероятности перехода</i>
+  -isValidHamiltonianCycle(way: Way, start: int): bool
+  <i>Проверка корректности цикла</i>
+  -updatePheromones(allCycles: vector<Way>): void
+  <i>Нанесение феромонов на пути</i>
+  -evaporatePheromones(): void
+  <i>Испарение феромонов</i>
+  -getPheromone(from: int, to: int): double
+  <i>Получение значения феромона</i>
+  -setPheromone(from: int, to: int, val: double): void
+  <i>Установка значения феромона</i>
+}
+
+Ant <|-- CustomAnt
+AntColony *-- Ant
+AntColony ..> Way
+
+@enduml
