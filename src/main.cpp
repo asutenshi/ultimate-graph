@@ -45,25 +45,58 @@ int main() {
 
 //  ---
   
-  try {
+  // try {
     // TODO: перенести остановку в условие продолжения
     // WeightedGraph graph("./data/ant_graph_small.txt");
     // WeightedGraph graph("./data/1000.txt");
+    // WeightedGraph graph("./data/ai_studio_graph.txt");
+  
+    // graph.print();
+
+    // AntColony(const T& agraph, const std::string& configFile,
+    //   int iterations = 100, double evap = 0.5,
+    //   double q = 100.0, double initPheromone = 0.1,
+    //   int minIter = 0, int stableIter = 0, double epsilon = 1e-6)
+  
+  //   GraphAlgorithms<Graph<WeightedEdge>> algorithms(graph.getGraph());
+  //   std::cout << std::endl << algorithms.antAlgorithm<BalancedAnt>(
+  //     20,         // antCount
+  //     150,        // maxIterations
+  //     0.025,        // evaporationRate
+  //     100.0,      // Q
+  //     0.1,       // initialPheromone
+  //     0,         // minIterations
+  //     0,         // stableIterations
+  //     0.001       // eps
+  //   ) << std::endl;
+  // } catch (const std::exception& ex) {
+  //     std::cout << "\nAlgorithm error: " << ex.what() << std::endl;
+  // }
+
+  // ---
+
+  try {
     WeightedGraph graph("./data/ai_studio_graph.txt");
   
     graph.print();
   
-    GraphAlgorithms<Graph<WeightedEdge>> algorithms(graph.getGraph());
-    std::cout << std::endl << algorithms.antAlgorithm<BalancedAnt>(
-      20,         // antCount
+    AntColony<Graph<WeightedEdge>> colony(
+      graph.getGraph(),
+      "./config/ant.cfg",
       150,        // maxIterations
-      0.025,        // evaporationRate
+      0.025,      // evaporationRate
       100.0,      // Q
-      0.1,       // initialPheromone
-      0,         // minIterations
-      0,         // stableIterations
+      0.1,        // initialPheromone
+      0,          // minIterations
+      0,          // stableIterations
       0.001       // eps
-    ) << std::endl;
+    );
+    
+    std::cout << "Colony created with " << colony.getAntCount() << " ants" << std::endl;
+    
+    Way result = colony.findShortestHamiltonianCycle();
+    std::cout << std::endl << result << std::endl;
+    
   } catch (const std::exception& ex) {
       std::cout << "\nAlgorithm error: " << ex.what() << std::endl;
   }

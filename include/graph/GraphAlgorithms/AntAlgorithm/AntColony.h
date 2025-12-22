@@ -52,6 +52,16 @@ class AntColony {
       Q(q), initialPheromone(initPheromone),
       minIterations(minIter), stableIterations(stableIter), eps(epsilon) {}
 
+    AntColony(const T& agraph, const std::string& configFile,
+      int iterations = 100, double evap = 0.5,
+      double q = 100.0, double initPheromone = 0.1,
+      int minIter = 0, int stableIter = 0, double epsilon = 1e-6)
+      : graph(agraph), maxIterations(iterations),
+        evaporationRate(evap), Q(q), initialPheromone(initPheromone),
+        minIterations(minIter), stableIterations(stableIter), eps(epsilon) {
+          loadAntsFromConfig(configFile);
+        }
+
     void addAnt(std::unique_ptr<Ant> ant) {
       ants.push_back(std::move(ant));   }
     
@@ -67,6 +77,7 @@ class AntColony {
     Way findShortestHamiltonianCycle();
 
     private:
+      void loadAntsFromConfig(const std::string& filename);
       void initializePheromones();
       Way constructHamiltonianCycle(int start, const Ant& ant, std::mt19937& rng);
       int selectNextNode(int current, const std::unordered_set<int>& visited, 
@@ -86,6 +97,42 @@ void AntColony<T>::initializePheromones() {
     for (const auto& edge : edges) {
       setPheromone(node, edge.to, initialPheromone);
     }
+  }
+}
+
+template <typename T>
+void AntColony<T>::loadAntsFromConfig(const std::string& filename) {
+  std::ifstream file(filename);
+  if (!file.is_open()) {
+    throw std::runtime_error("Cannot open config file: " + filename);
+  }
+
+  std::string line;
+  int lineNumber = 0;
+  
+  while (std::getline(file, line)) {
+    lineNumber++;
+    
+    if (line.empty() || line[0] == '#') continue;
+    
+    std::istringstream iss(line);
+    double alpha, beta;
+    int count;
+    
+    if (!(iss >> alpha >> beta >> count)) {
+      throw std::runtime_error("Invalid format in config file at line " + 
+                              std::to_string(lineNumber));
+    }
+    
+    for (int i = 0; i < count; ++i) {
+      ants.push_back(std::make_unique<CustomAnt>(alpha, beta));
+    }
+  }
+  
+  file.close();
+  
+  if (ants.empty()) {
+    throw std::runtime_error("No ants loaded from config file");
   }
 }
 
