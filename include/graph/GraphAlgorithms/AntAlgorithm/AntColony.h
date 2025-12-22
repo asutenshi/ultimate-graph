@@ -2,9 +2,7 @@
 
 #include "Ant.h"
 #include "../../Way.h"
-
 #include "../../Utils/Logger.h"
-
 #include <vector>
 #include <memory>
 #include <unordered_map>
@@ -108,24 +106,56 @@ void AntColony<T>::loadAntsFromConfig(const std::string& filename) {
   }
 
   std::string line;
-  int lineNumber = 0;
-  
+  double currentAlpha = 0.0;
+  double currentBeta = 0.0;
+  int currentCount = 0;
+  bool sectionStarted = false;
+
   while (std::getline(file, line)) {
-    lineNumber++;
-    
-    if (line.empty() || line[0] == '#') continue;
-    
-    std::istringstream iss(line);
-    double alpha, beta;
-    int count;
-    
-    if (!(iss >> alpha >> beta >> count)) {
-      throw std::runtime_error("Invalid format in config file at line " + 
-                              std::to_string(lineNumber));
+    size_t first = line.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos) continue;
+    size_t last = line.find_last_not_of(" \t\r\n");
+    std::string trimmed = line.substr(first, (last - first + 1));
+
+    if (trimmed.empty() || trimmed[0] == '#' || trimmed[0] == ';') continue;
+
+    if (trimmed.front() == '[' && trimmed.back() == ']') {
+      if (sectionStarted && currentCount > 0) {
+        for (int i = 0; i < currentCount; ++i) {
+          ants.push_back(std::make_unique<CustomAnt>(currentAlpha, currentBeta));
+        }
+      }
+      currentAlpha = 0.0;
+      currentBeta = 0.0;
+      currentCount = 0;
+      sectionStarted = true;
+      continue;
     }
-    
-    for (int i = 0; i < count; ++i) {
-      ants.push_back(std::make_unique<CustomAnt>(alpha, beta));
+
+    size_t eqPos = trimmed.find('=');
+    if (eqPos != std::string::npos) {
+      std::string key = trimmed.substr(0, eqPos);
+      std::string value = trimmed.substr(eqPos + 1);
+
+      while (!key.empty() && (key.back() == ' ' || key.back() == '\t')) key.pop_back();
+      
+      size_t valStart = value.find_first_not_of(" \t");
+      if (valStart != std::string::npos) value = value.substr(valStart);
+
+      for (char &c : key) c = std::tolower(c);
+
+      try {
+        if (key == "alpha") currentAlpha = std::stod(value);
+        else if (key == "beta" || key == "betta") currentBeta = std::stod(value);
+        else if (key == "count" || key == "n") currentCount = std::stoi(value);
+      } catch (...) {
+      }
+    }
+  }
+  
+  if (sectionStarted && currentCount > 0) {
+    for (int i = 0; i < currentCount; ++i) {
+      ants.push_back(std::make_unique<CustomAnt>(currentAlpha, currentBeta));
     }
   }
   
