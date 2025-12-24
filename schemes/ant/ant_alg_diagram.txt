@@ -72,18 +72,18 @@ class "AntColony<T>" as AntColony {
   <i>Добавление одного муравья</i>
   +addAnts<AntType>(count: int): void
   <i>Добавление группы муравьев</i>
-  +{static} readGraphPath(configFile: string): string
+  +readGraphPath(configFile: string): string
   <i>Чтение пути к графу из конфига</i>
-  +{static} readOutputPath(configFile: string): string
+  +readOutputPath(configFile: string): string
   <i>Чтение пути вывода из конфига</i>
   --
   -loadConfig(filename: string): void
   <i>Парсинг конфигурационного файла</i>
   -initializePheromones(): void
   <i>Заполнение начальными феромонами</i>
-  -constructHamiltonianCycle(start: int, ant: Ant, rng: mt19937): Way
+  -constructHamiltonianCycle(start: int, ant: Ant, rng): Way
   <i>Построение пути одним муравьем</i>
-  -selectNextNode(curr: int, visited: set, ant: Ant, rng: mt19937): int
+  -selectNextNode(curr: int, visited: set, ant: Ant, rng): int
   <i>Выбор следующей вершины (рулетка)</i>
   -calculateProbability(pher: double, dist: double, ant: Ant): double
   <i>Расчет вероятности перехода</i>

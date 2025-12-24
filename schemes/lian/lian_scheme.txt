@@ -1,0 +1,72 @@
+@startuml
+title Алгоритм LIAN
+skinparam conditionStyle diamond
+skinparam backgroundColor #FDFDFD
+
+start
+:Инициализация структур данных;
+if (Start или Goal невалидны?) then (да)
+    #Pink:Вернуть пустой путь;
+    stop
+else (нет)
+endif
+
+:Добавить StartNode в очередь **OpenSet**;
+:Записать **CostSoFar**[Start] = 0;
+
+while (Очередь **OpenSet** не пуста?) is (да)
+    :Извлечь узел **Current** из **OpenSet**\n(с наименьшей оценкой);
+    
+    if (Current.cost > CostSoFar[Current.pos]?) then (да)
+        :Пропустить\n(найден более короткий путь к этой точке);
+    else (нет)
+        
+        partition "Проверка угла (Lazy Check)" {
+            if (Угол(GrandParent -> Parent -> Current) > MaxAngle?) then (да)
+                :Отбросить узел\n(нарушение ограничения угла);
+            else (нет)
+            
+                if (Current == Goal?) then (да)
+                    #LightGreen:Восстановить путь через **CameFrom**\n(reconstructPath);
+                    stop
+                endif
+
+                partition "Оптимизация прямой видимости" {
+                    if (Есть прямая видимость (Current -> Goal)\nИ Угол валиден?) then (да)
+                        :Добавить прямой отрезок к пути;
+                        #LightGreen:Вернуть итоговый путь;
+                        stop
+                    endif
+                }
+
+                :Найти соседей (**getNeighbors**)\n(на окружности радиуса Delta);
+                
+                while (Есть еще соседи (Next)?) is (да)
+                    
+                    partition "Логика срезания углов (Shortcut)" {
+                        if (Линия(Parent -> Next) свободна\nИ Угол валиден?) then (да)
+                            :Срезаем угол:\nРодитель для Next будет **Current.Prev** (Parent);
+                        else (нет)
+                            :Идем последовательно:\nРодитель для Next будет **Current.Pos**;
+                        endif
+                    }
+                    
+                    :NewCost = Стоимость до Родителя + Дистанция(Родитель, Next);
+                    
+                    if (NewCost < CostSoFar[Next]?) then (да)
+                        :Обновить **CostSoFar**[Next] = NewCost;
+                        :Priority = NewCost + Heuristic(Next, Goal);
+                        :Добавить **Next** в очередь **OpenSet**;
+                        :Запомнить в **CameFrom**[Next] = Родитель;
+                    endif
+                endwhile (нет)
+            
+            endif
+        }
+    endif
+endwhile (нет)
+
+#Pink:Путь не найден (Очередь пуста);
+stop
+
+@enduml

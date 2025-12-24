@@ -24,6 +24,36 @@ std::vector<Point> LIAN::findPath() {
     return findPath(start_, goal_, maxAngle_, delta_);
 }
 
+std::string LIAN::readMapPath(const std::string& configFile) {
+    std::ifstream file(configFile);
+    if (!file.is_open()) return "";
+
+    std::string line;
+    while (std::getline(file, line)) {
+        size_t first = line.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos) continue;
+        if (line[first] == '[' || line[first] == '#') continue;
+
+        size_t eqPos = line.find('=');
+        if (eqPos != std::string::npos) {
+            std::string key = line.substr(first, eqPos - first);
+            std::string value = line.substr(eqPos + 1);
+            
+            while (!key.empty() && (key.back() == ' ' || key.back() == '\t')) key.pop_back();
+            size_t valStart = value.find_first_not_of(" \t");
+            if (valStart != std::string::npos) value = value.substr(valStart);
+            while (!value.empty() && (value.back() == ' ' || value.back() == '\t' || value.back() == '\r')) value.pop_back();
+
+            for (char &c : key) c = std::tolower(c);
+
+            if (key == "mapfile" || key == "map") {
+                return value;
+            }
+        }
+    }
+    return "";
+}
+
 void LIAN::loadConfig(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -56,15 +86,26 @@ void LIAN::loadConfig(const std::string& filename) {
                     if (commaPos != std::string::npos) {
                         int x = std::stoi(value.substr(0, commaPos));
                         int y = std::stoi(value.substr(commaPos + 1));
-                        if (key == "start") start_ = {x, y};
-                        else goal_ = {x, y};
+                        if (key == "start") {
+                            start_ = {x, y};
+                            std::cout << "DEBUG: Loaded start = " << x << ", " << y << std::endl;
+                        } else {
+                            goal_ = {x, y};
+                            std::cout << "DEBUG: Loaded goal = " << x << ", " << y << std::endl;
+                        }
                     }
                 } else if (key == "maxangle") {
                     maxAngle_ = std::stod(value);
+                    std::cout << "DEBUG: Loaded maxAngle = " << maxAngle_ << std::endl;
                 } else if (key == "delta") {
                     delta_ = std::stoi(value);
+                    std::cout << "DEBUG: Loaded delta = " << delta_ << std::endl;
+                } else if (key == "outputfile" || key == "output") {
+                    outputFile_ = value;
+                    std::cout << "DEBUG: Loaded outputFile = " << outputFile_ << std::endl;
                 }
             } catch (...) {
+                std::cerr << "Error parsing config line: " << trimmed << std::endl;
             }
         }
     }
@@ -104,7 +145,6 @@ std::vector<Point> LIAN::findPath(const Point& start, const Point& goal, double 
             continue;
         }
 
-        // FIX: Проверка валидности угла с актуальным родителем
         if (current.prev != current.pos) {
             Point grandParent = current.prev;
             if (cameFrom.count(current.prev)) {
@@ -192,17 +232,14 @@ bool savePathToCSV(const std::vector<Point>& path, const std::string& filename) 
     for (size_t i = 0; i < path.size(); ++i) {
         double angle = 0.0;
 
-        // Угол вычисляем только для внутренних точек (нужны prev и next)
         if (i > 0 && i < path.size() - 1) {
             const Point& prev = path[i - 1];
             const Point& curr = path[i];
             const Point& next = path[i + 1];
 
-            // Вектор 1: prev -> curr
             double dx1 = curr.x - prev.x;
             double dy1 = curr.y - prev.y;
             
-            // Вектор 2: curr -> next
             double dx2 = next.x - curr.x;
             double dy2 = next.y - curr.y;
 
@@ -212,11 +249,7 @@ bool savePathToCSV(const std::vector<Point>& path, const std::string& filename) 
 
             if (mag1 > 0 && mag2 > 0) {
                 double cosAngle = dot / (mag1 * mag2);
-                // Ограничиваем диапазон [-1, 1] для защиты от погрешностей float
                 cosAngle = std::max(-1.0, std::min(1.0, cosAngle));
-                
-                // acos возвращает радианы, переводим в градусы
-                // Угол 0 означает движение прямо, 180 - разворот
                 angle = std::acos(cosAngle) * 180.0 / std::numbers::pi;
             }
         }
@@ -377,17 +410,14 @@ double LIAN::distance(const Point& a, const Point& b) const {
 double LIAN::heuristic(const Point& current, const Point& goal, const Point& prev) const {
   double distToGoal = distance(current, goal);
   
-  // Если это стартовая точка, возвращаем только расстояние
   if (current == prev) {
     return distToGoal;
   }
   
-  // Штраф за отклонение от прямой линии к цели
   double directDist = distance(prev, goal);
   double stepDist = distance(prev, current);
   double deviation = std::abs((stepDist + distToGoal) - directDist);
   
-  // Комбинированная эвристика
   return distToGoal + 3.0 * deviation;
 }
 
@@ -398,31 +428,26 @@ std::vector<Point> LIAN::reconstructPath(
     std::vector<Point> path;
     Point current = goal;
     
-    // Восстанавливаем путь в обратном порядке
     while (current != start) {
         path.push_back(current);
         auto it = cameFrom.find(current);
         if (it == cameFrom.end()) {
-            return {}; // Путь не найден
+            return {};
         }
         current = it->second;
     }
     path.push_back(start);
     
-    // Переворачиваем путь
     std::reverse(path.begin(), path.end());
-    savePathToCSV(path, "./output/lian.csv");
+    savePathToCSV(path, outputFile_);
     
-    // Добавляем промежуточные точки между каждыми двумя соседними точками
     std::vector<Point> detailedPath;
     
     for (size_t i = 0; i < path.size(); ++i) {
         detailedPath.push_back(path[i]);
         
-        // Если есть следующая точка, добавляем промежуточные точки
         if (i + 1 < path.size()) {
             std::vector<Point> linePoints = getLinePoints(path[i], path[i + 1]);
-            // Пропускаем первую точку (она уже добавлена) и последнюю (она будет добавлена на следующей итерации)
             for (size_t j = 1; j < linePoints.size() - 1; ++j) {
                 detailedPath.push_back(linePoints[j]);
             }
@@ -454,10 +479,8 @@ bool saveMapWithPath(const std::vector<std::vector<int>>& grid, const std::vecto
         return false;
     }
 
-    // Копируем карту
     std::vector<std::vector<int>> resultMap = grid;
     
-    // Отмечаем путь числом 2
     for (const auto& point : path) {
         int x = static_cast<int>(point.x);
         int y = static_cast<int>(point.y);
@@ -468,7 +491,6 @@ bool saveMapWithPath(const std::vector<std::vector<int>>& grid, const std::vecto
         }
     }
     
-    // Сохраняем в файл
     std::ofstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Cannot open file: " << filename << std::endl;

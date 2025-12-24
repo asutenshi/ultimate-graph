@@ -1,0 +1,87 @@
+@startuml LIAN Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam style strictuml
+
+class Point <<struct>> {
+  +x: int
+  +y: int
+  --
+  +operator==(other: Point): bool
+  <i>Сравнение координат</i>
+}
+
+class Node <<struct>> {
+  +pos: Point
+  <i>Текущая позиция</i>
+  +prev: Point
+  <i>Родительская позиция</i>
+  +cost: double
+  <i>Накопленная стоимость (g)</i>
+  +heuristic: double
+  <i>Эвристическая оценка (h)</i>
+  --
+  +f(): double
+  <i>Полная стоимость (f = g + h)</i>
+  +operator>(other: Node): bool
+  <i>Оператор сравнения для очереди приоритетов</i>
+}
+
+class LIAN {
+  <i>Класс реализации алгоритма LIAN</i>
+  ==
+  -map_: std::vector<std::vector<int>>
+  <i>Карта проходимости (0 - свободно, 1 - препятствие)</i>
+  -rows_: int
+  <i>Количество строк</i>
+  -cols_: int
+  <i>Количество столбцов</i>
+  -start_: Point
+  <i>Точка старта (загружается из конфига)</i>
+  -goal_: Point
+  <i>Целевая точка (загружается из конфига)</i>
+  -maxAngle_: double
+  <i>Максимально допустимый угол поворота</i>
+  -delta_: int
+  <i>Радиус поиска соседей (шаг)</i>
+  -outputFile_: string
+  <i>Путь к файлу для сохранения результата</i>
+  --
+  +LIAN(grid: vector<vector<int>>)
+  <i>Конструктор с картой</i>
+  +LIAN(grid: vector<vector<int>>, configFile: string)
+  <i>Конструктор с картой и конфигом</i>
+  +findPath(): std::vector<Point>
+  <i>Запуск поиска (параметры из полей класса)</i>
+  +findPath(start: Point, goal: Point, angle: double, delta: int): std::vector<Point>
+  <i>Основной метод поиска пути</i>
+  +readMapPath(configFile: string): string
+  <i>Чтение пути к файлу карты из конфига</i>
+  --
+  -loadConfig(filename: string): void
+  <i>Парсинг конфигурационного файла</i>
+  -isValid(p: Point): bool
+  <i>Проверка границ карты и препятствий</i>
+  -isFreeLine(a: Point, b: Point): bool
+  <i>Проверка прямой видимости (алгоритм Брезенхема)</i>
+  -angleBetween(a: Point, b: Point, c: Point): double
+  <i>Вычисление угла между тремя точками</i>
+  -isValidAngle(prev: Point, curr: Point, next: Point, maxAngle: double): bool
+  <i>Проверка ограничения на угол поворота</i>
+  -getNeighbors(curr: Point, prev: Point, maxAngle: double, delta: int): vector<Point>
+  <i>Поиск валидных соседей в радиусе Delta</i>
+  -distance(a: Point, b: Point): double
+  <i>Евклидово расстояние</i>
+  -heuristic(curr: Point, goal: Point, prev: Point): double
+  <i>Эвристическая функция (расстояние + штраф за поворот)</i>
+  -reconstructPath(cameFrom: map, start: Point, goal: Point): vector<Point>
+  <i>Восстановление и сглаживание пути</i>
+  -getLinePoints(a: Point, b: Point): vector<Point>
+  <i>Получение всех точек отрезка</i>
+}
+
+LIAN ..> Node
+LIAN ..> Point
+Node *-- Point
+
+@enduml

@@ -80,7 +80,6 @@ int main() {
   try {
     std::string configFile = "./config/ant.cfg";
     
-    // 1. Считываем пути из конфига
     std::string graphFile = AntColony<Graph<WeightedEdge>>::readGraphPath(configFile);
     std::string outputFile = AntColony<Graph<WeightedEdge>>::readOutputPath(configFile);
 
@@ -91,11 +90,9 @@ int main() {
         std::cout << "Loading graph from: " << graphFile << std::endl;
     }
 
-    // 2. Загружаем граф
     WeightedGraph graph(graphFile);
     graph.print();
   
-    // 3. Создаем колонию
     AntColony<Graph<WeightedEdge>> colony(
       graph.getGraph(),
       configFile
@@ -106,7 +103,6 @@ int main() {
     Way result = colony.findShortestHamiltonianCycle();
     std::cout << std::endl << result << std::endl;
     
-    // 4. Сохраняем результат в файл из конфига
     if (outputFile.empty()) {
         std::cout << "Output file not specified, using default: ./output/ant_result.txt" << std::endl;
         outputFile = "./output/ant_result.txt";
@@ -119,16 +115,18 @@ int main() {
 
   // ---
 
-  // std::vector<std::vector<int>> map = readBinaryMap("./data/binary_map.txt");
-  // LIAN alg = LIAN(map, "./config/lian.cfg");
+  // std::string lianConfig = "./config/lian.cfg";
+  
+  // std::string mapFile = LIAN::readMapPath(lianConfig);
+  // if (mapFile.empty()) {
+  //     mapFile = "./data/binary_map.txt";
+  //     std::cout << "Map file not found in config, using default: " << mapFile << std::endl;
+  // }
 
-  // // Point start{165, 304};
-  // // Point start{213, 623};
-  // // Point goal{1287, 690};
-  // // double maxAngle = 90.0;
-  // // int delta = 15;
+  // std::vector<std::vector<int>> map = readBinaryMap(mapFile);
+  
+  // LIAN alg(map, lianConfig);
 
-  // // std::vector<Point> path = alg.findPath(start, goal, maxAngle, delta);
   // std::vector<Point> path = alg.findPath();
 
   // if (!path.empty()) {
@@ -141,6 +139,8 @@ int main() {
   // } else {
   //     std::cout << "No path found" << std::endl;
   // }
+
+  // ---
 
   return 0;
 }

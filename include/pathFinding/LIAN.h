@@ -38,6 +38,7 @@ public:
     LIAN(const std::vector<std::vector<int>>& grid, const std::string& configFile);
     std::vector<Point> findPath(const Point& start, const Point& goal, double max_turn_angle, int delta = 1);
     std::vector<Point> findPath();
+    static std::string readMapPath(const std::string& configFile);
 
 private:
     std::vector<std::vector<int>> map_;
@@ -49,9 +50,9 @@ private:
     double maxAngle_ = 0.0;
     int delta_ = 1;
 
+    std::string outputFile_ = "./output/lian.csv";
+
     void loadConfig(const std::string& filename);
-
-
     
     bool isValid(const Point& p) const;
     bool isFreeLine(const Point& a, const Point& b) const;
